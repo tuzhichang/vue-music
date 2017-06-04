@@ -20,3 +20,7 @@ yarn-error.log*
 .idea/workspace.xml
 
 .idea/workspace.xml
+
+.idea/dictionaries/tuzhichang.xml
+
+package-lock.json
