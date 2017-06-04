@@ -1,17 +1,23 @@
 <template>
   <div id="app">
-    hello
+    <m-header></m-header>
+    <tab></tab>
+    <keep-alive>
+      <router-view></router-view>
+    </keep-alive>
   </div>
 </template>
 
 <script>
-  export default {}
+  import MHeader from 'components/header/m-header'
+  import tab from 'components/tab/tab'
+  export default {
+    components: {
+      MHeader,
+      tab
+    }
+  }
 </script>
 
 <style lang="scss" scoped>
-  @import "common/style/variable.scss";
-
-  #app {
-    color: $color-theme;
-  }
 </style>
