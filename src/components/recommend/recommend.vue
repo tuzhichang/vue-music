@@ -1,35 +1,42 @@
 <template>
   <div class="recommend">
-    <div class="recommend-content">
-      <div class="slider-wrapper">
-        <slider v-if="recommends.length">
-          <div v-for="item in recommends">
-            <a :href="item.linkUrl">
-              <img :src="item.picUrl">
-            </a>
-          </div>
-        </slider>
-      </div>
-      <div class="recommend-list">
-        <h1>热门歌单推荐</h1>
-        <ul>
-          <li v-for="item in discList" class="item">
-            <div class="icon">
-              <img width="60" height="60" :src="item.imgurl">
+    <scroll ref="scroll" class="recommend-content" :data="discList">
+      <div>
+        <div v-if="recommends.length" class="slider-wrapper">
+          <slider v-if="recommends.length">
+            <div v-for="item in recommends">
+              <a :href="item.linkUrl">
+                <img class="needsclick" @load="loadImage" :src="item.picUrl">
+              </a>
             </div>
-            <div class="text">
-              <h2 class="name" v-html="item.creator.name"></h2>
-              <p class="desc" v-html="item.dissname"></p>
-            </div>
-          </li>
-        </ul>
+          </slider>
+        </div>
+        <div class="recommend-list">
+          <h1 class="list-title">热门歌单推荐</h1>
+          <ul>
+            <li v-for="item in discList" class="item">
+              <div class="icon">
+                <img width="60" height="60" v-lazy="item.imgurl">
+              </div>
+              <div class="text">
+                <h2 class="name" v-html="item.creator.name"></h2>
+                <p class="desc" v-html="item.dissname"></p>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
+      <div class="loading-container" v-show="!discList.length">
+        <loading></loading>
+      </div>
+    </scroll>
   </div>
 </template>
 
 <script>
   import Slider from 'base/slider/slider'
+  import scroll from 'base/scroll/scroll'
+  import loading from 'base/loading/loading'
   import { getRecommend, getDiscList } from 'api/recommend'
   import { ERR_OK } from 'api/config'
   export default {
@@ -57,10 +64,18 @@
             this.discList = res.data.list
           }
         })
+      },
+      loadImage () {
+        if (!this.checkLoaded) {
+          this.checkLoaded = true
+          this.$refs.scroll.refresh()
+        }
       }
     },
     components: {
-      Slider
+      Slider,
+      scroll,
+      loading
     }
   }
 </script>
@@ -82,11 +97,6 @@
         overflow: hidden;
       }
       .recommend-list {
-        height: 65px;
-        line-height: 65px;
-        text-align: center;
-        font-size: $font-size-medium;
-        color: $color-theme;
         .list-title {
           height: 65px;
           line-height: 65px;
