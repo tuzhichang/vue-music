@@ -5,7 +5,50 @@
 </template>
 
 <script>
-  export default {}
+  import { mapGetters } from 'vuex'
+  import { getSingerDetail } from 'api/singer'
+  import { ERR_OK } from 'api/config'
+  import { createSong } from 'common/js/song'
+
+  export default {
+    data () {
+      return {
+        songs: []
+      }
+    },
+    created () {
+      this._getDetail()
+    },
+    computed: {
+      ...mapGetters([
+        'singer'
+      ])
+    },
+    methods: {
+      _getDetail () {
+        if (!this.singer.id) {
+          this.$router.push('/singer')
+          return
+        }
+        getSingerDetail(this.singer.id).then((res) => {
+          if (res.code === ERR_OK) {
+            this.songs = this._normalizeSongs(res.data.list)
+            console.log(this.songs)
+          }
+        })
+      },
+      _normalizeSongs (list) {
+        let ret = []
+        list.forEach((item) => {
+          let {musicData} = item
+          if (musicData.songid && musicData.albumid) {
+            ret.push(createSong(musicData))
+          }
+        })
+        return ret
+      }
+    }
+  }
 </script>
 
 <style lang="scss" scoped>
@@ -20,9 +63,11 @@
     bottom: 0;
     background: $color-background;
   }
+
   .slide-enter-active, .slide-leave-active {
     transition: all 0.3s;
   }
+
   .slide-enter, .slide-leave-to {
     transform: translate3d(100%, 0, 0);
   }
