@@ -2,8 +2,10 @@
   <div class="song-list">
     <ul>
       <li @click="selectItem(song, index)" v-for="(song, index) in songs" class="item">
-        <h2 class="name">{{song.name}}</h2>
-        <p class="desc">{{song | getSongDesc}}</p>
+        <div class="content">
+          <h2 class="name">{{song.name}}</h2>
+          <p class="desc">{{song | getSongDesc}}</p>
+        </div>
       </li>
     </ul>
   </div>
