@@ -15,25 +15,33 @@
         <div class="middle">
           <div class="middle-l">
             <div class="cd-wrapper" ref="cdWrapper">
-              <div class="cd">
+              <div class="cd" ref="imageWrapper">
                 <img :src="currentSong.image" :class="cdCls" class="image">
               </div>
             </div>
           </div>
         </div>
         <div class="bottom">
+          <div class="progress-wrapper">
+            <span class="time time-l">{{format(currentTime)}}</span>
+            <div class="progress-bar-wrapper">
+              <progress-bar ref="progressBar" :percent="percent" @percentChange="onProgressBarChange"
+                            @percentChanging="onProgressBarChanging"></progress-bar>
+            </div>
+            <span class="time time-r">{{format(currentSong.duration)}}</span>
+          </div>
           <div class="operators">
             <div class="icon i-left">
               <i class="icon-sequence"></i>
             </div>
-            <div class="icon i-left">
-              <i class="icon-prev"></i>
+            <div class="icon i-left" :class="disableCls">
+              <i @click="prev" class="icon-prev"></i>
             </div>
-            <div class="icon i-center">
+            <div class="icon i-center" :class="disableCls">
               <i @click="togglePlaying" :class="playIcon"></i>
             </div>
-            <div class="icon i-right">
-              <i class="icon-next"></i>
+            <div class="icon i-right" :class="disableCls">
+              <i @click="next" class="icon-next"></i>
             </div>
             <div class="icon i-right">
               <i class="icon icon-not-favorite"></i>
@@ -54,25 +62,36 @@
           <p class="desc" v-html="currentSong.singer"></p>
         </div>
         <div class="control">
-          <i @click.stop="togglePlaying" class="icon-mini" :class="miniIcon"></i>
+          <progress-circle :radius="radius" :percent="percent">
+            <i @click.stop="togglePlaying" class="icon-mini" :class="miniIcon"></i>
+          </progress-circle>
         </div>
         <div class="control">
           <i class="icon-playlist"></i>
         </div>
       </div>
     </transition>
-    <audio ref="audio" :src="currentSong.url"></audio>
+    <audio ref="audio" :src="currentSong.url" @canplay="ready" @error="error" @timeupdate="updateTime"></audio>
   </div>
 </template>
 
 <script>
   import { mapGetters, mapMutations } from 'vuex'
   import { prefixStyle } from 'common/js/dom'
+  import ProgressBar from 'base/progress-bar/progress-bar'
+  import ProgressCircle from 'base/progress-circle/progress-circle'
   import animations from 'create-keyframe-animation'
 
   const transform = prefixStyle('transform')
 
   export default {
+    data () {
+      return {
+        songReady: false,
+        currentTime: 0,
+        radius: 32
+      }
+    },
     computed: {
       cdCls () {
         return this.playing ? 'play' : ''
@@ -83,11 +102,18 @@
       miniIcon () {
         return this.playing ? 'icon-pause-mini' : 'icon-play-mini'
       },
+      disableCls () {
+        return this.songReady ? '' : 'disable'
+      },
+      percent () {
+        return this.currentTime / this.currentSong.duration
+      },
       ...mapGetters([
         'fullScreen',
         'playlist',
         'currentSong',
-        'playing'
+        'playing',
+        'currentIndex'
       ])
     },
     methods: {
@@ -141,7 +167,74 @@
         this.$refs.cdWrapper.style[transform] = ''
       },
       togglePlaying () {
+        if (!this.songReady) {
+          return
+        }
         this.setPlayingState(!this.playing)
+      },
+      prev () {
+        if (!this.songReady) {
+          return
+        }
+        let index = this.currentIndex
+        index--
+        if (index < 0) {
+          index = this.playlist.length - 1
+        }
+        this.setCurrentIndex(index)
+        if (!this.playing) {
+          this.togglePlaying()
+        }
+      },
+      next () {
+        if (!this.songReady) {
+          return
+        }
+        let index = this.currentIndex
+        index++
+        if (index === this.playlist.length) {
+          index = 0
+        }
+        this.setCurrentIndex(index)
+        if (!this.playing) {
+          this.togglePlaying()
+        }
+      },
+      ready () {
+        // 延时避免快速切换歌曲导致 DOM 会报错
+        setTimeout(() => {
+          this.songReady = true
+        }, 500)
+      },
+      error () {
+        this.songReady = true
+      },
+      updateTime (e) {
+        this.currentTime = e.target.currentTime
+      },
+      onProgressBarChanging (percent) {
+        this.currentTime = this.currentSong.duration * percent
+      },
+      onProgressBarChange (percent) {
+        const currentTime = this.currentSong.duration * percent
+        this.currentTime = this.$refs.audio.currentTime = currentTime
+        if (!this.playing) {
+          this.togglePlaying()
+        }
+      },
+      format (interval) {
+        interval = interval | 0
+        const minute = interval / 60 | 0
+        const second = this._pad(interval % 60)
+        return `${minute}:${second}`
+      },
+      _pad (num, n = 2) {
+        let len = num.toString().length
+        while (len < n) {
+          num = '0' + num
+          len++
+        }
+        return num
       },
       _getPosAndScale () {
         const targetWidth = 40
@@ -160,11 +253,13 @@
       },
       ...mapMutations({
         setFullScreen: 'SET_FULL_SCREEN',
-        setPlayingState: 'SET_PLAYING_STATE'
+        setPlayingState: 'SET_PLAYING_STATE',
+        setCurrentIndex: 'SET_CURRENT_INDEX'
       })
     },
     watch: {
       currentSong () {
+        this.songReady = false
         this.$nextTick(() => {
           this.$refs.audio.play()
         })
@@ -175,6 +270,10 @@
           newPlaying ? audio.play() : audio.pause()
         })
       }
+    },
+    components: {
+      ProgressBar,
+      ProgressCircle
     }
   }
 </script>
@@ -337,7 +436,7 @@
             }
           }
         }
-        .process-wrapper {
+        .progress-wrapper {
           display: flex;
           align-items: center;
           width: 80%;
